@@ -1,0 +1,8 @@
+network = "testnet4"
+db_dir = "/data/electrs"
+daemon_dir = "/data/bitcoin"
+daemon_rpc_addr = "bitcoind:48332"
+daemon_p2p_addr = "bitcoind:48333"
+electrum_rpc_addr = "0.0.0.0:60801"
+log_filters = "INFO"
+monitoring_addr = "0.0.0.0:14224"

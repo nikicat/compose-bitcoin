@@ -1,0 +1,65 @@
+x-bitcoin-build: &build-bitcoin
+  user: ${DOCKER_UID_GID}
+  build:
+    context: ./docker/bitcoin
+    args:
+      GIT_URL: https://github.com/nikicat/bitcoin
+      GIT_BRANCH: testnet4
+      NJOBS: "5"
+
+x-electrs-build: &build-electrs
+  build:
+    context: ./docker/electrs
+    args:
+      GIT_URL: https://github.com/nikicat/electrs
+      GIT_BRANCH: testnet4
+      GIT_REV: 31801c9fc37cb131fffd64ef3bc1bc4f70baf9e1
+      NJOBS: "5"
+
+services:
+  bitcoind:
+    <<: *build-bitcoin
+    command: bitcoind -datadir=/.bitcoin ${BITCOIN_RPCAUTH:+-rpcauth=$BITCOIN_RPCAUTH}
+    volumes:
+      - ${BITCOIN_DATADIR}:/.bitcoin/testnet4
+    configs:
+      - source: bitcoin 
+        target: /.bitcoin/bitcoin.conf
+    ports:
+      - ${EXTERNAL_ADDR}:48332:48332
+      - ${EXTERNAL_ADDR}:48333:48333
+      - 127.0.0.1:48332:48332
+      - 127.0.0.1:48333:48333
+
+  bitcoin-cli:
+    <<: *build-bitcoin
+    entrypoint: bitcoin-cli -rpcconnect=bitcoind -rpcwallet=main -datadir=/.bitcoin
+    volumes:
+      - ${BITCOIN_DATADIR}:/.bitcoin/testnet4
+    configs:
+      - source: bitcoin 
+        target: /.bitcoin/bitcoin.conf
+
+  electrs:
+    <<: *build-electrs
+    command: electrs --network=testnet4 --conf=/etc/electrs.toml
+    depends_on:
+      bitcoind:
+        restart: true
+        condition: service_started
+    volumes:
+      - ${ELECTRS_DATADIR}:/data/electrs
+      - ${BITCOIN_DATADIR}:/data/bitcoin/testnet4
+    configs:
+      - source: electrs
+        target: /etc/electrs.toml
+    ports:
+      - ${EXTERNAL_ADDR}:60801:60801
+      - 127.0.0.1:60801:60801
+      - 127.0.0.1:44224:44224
+
+configs:
+  bitcoin:
+    file: ./configs/bitcoin.conf
+  electrs:
+    file: ./configs/electrs.toml
