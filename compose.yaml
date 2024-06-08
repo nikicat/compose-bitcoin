@@ -19,7 +19,7 @@ x-electrs-build: &build-electrs
 services:
   bitcoind:
     <<: *build-bitcoin
-    command: bitcoind -datadir=/.bitcoin ${BITCOIN_RPCAUTH:+-rpcauth=$BITCOIN_RPCAUTH}
+    command: bitcoind -datadir=/.bitcoin ${BITCOIN_ARGS}
     volumes:
       - ${BITCOIN_DATADIR}:/.bitcoin/testnet4
     configs:
@@ -28,8 +28,7 @@ services:
     ports:
       - ${EXTERNAL_ADDR}:48332:48332
       - ${EXTERNAL_ADDR}:48333:48333
-      - 127.0.0.1:48332:48332
-      - 127.0.0.1:48333:48333
+      - ${EXTERNAL_ADDR}:48442:48442
 
   bitcoin-cli:
     <<: *build-bitcoin
@@ -55,8 +54,6 @@ services:
         target: /etc/electrs.toml
     ports:
       - ${EXTERNAL_ADDR}:60801:60801
-      - 127.0.0.1:60801:60801
-      - 127.0.0.1:44224:44224
 
 configs:
   bitcoin:
