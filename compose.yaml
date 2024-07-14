@@ -3,60 +3,56 @@ x-bitcoin-build: &build-bitcoin
   build:
     context: ./docker/bitcoin
     args:
-      GIT_URL: https://github.com/nikicat/bitcoin
-      GIT_BRANCH: testnet4
-      NJOBS: "5"
+      GIT_URL: ${BITCOIN_GIT_URL}
+      GIT_BRANCH: ${BITCOIN_GIT_BRANCH}
+      NJOBS: ${NJOBS}
 
 x-electrs-build: &build-electrs
   build:
     context: ./docker/electrs
     args:
-      GIT_URL: https://github.com/nikicat/electrs
-      GIT_BRANCH: testnet4
-      GIT_REV: 31801c9fc37cb131fffd64ef3bc1bc4f70baf9e1
-      NJOBS: "5"
+      GIT_URL: ${ELECTRS_GIT_URL:-https://github.com/romanz/electrs}
+      GIT_BRANCH: ${ELECTRS_GIT_BRANCH:-master}
+      GIT_REV: ${ELECTRS_GIT_REV:-}
+      NJOBS: ${NJOBS:-}
 
 services:
   bitcoind:
     <<: *build-bitcoin
     command: bitcoind -datadir=/.bitcoin ${BITCOIN_ARGS}
+    restart: unless-stopped
     volumes:
-      - ${BITCOIN_DATADIR}:/.bitcoin/testnet4
+      - ${BITCOIN_DATADIR}:/.bitcoin/${BITCOIN_CHAIN}
     configs:
       - source: bitcoin 
         target: /.bitcoin/bitcoin.conf
-    ports:
-      - ${EXTERNAL_ADDR}:48332:48332
-      - ${EXTERNAL_ADDR}:48333:48333
-      - ${EXTERNAL_ADDR}:48442:48442
 
   bitcoin-cli:
     <<: *build-bitcoin
     entrypoint: bitcoin-cli -rpcconnect=bitcoind -rpcwallet=main -datadir=/.bitcoin
     volumes:
-      - ${BITCOIN_DATADIR}:/.bitcoin/testnet4
+      - ${BITCOIN_DATADIR}:/.bitcoin/${BITCOIN_CHAIN}
     configs:
       - source: bitcoin 
         target: /.bitcoin/bitcoin.conf
 
   electrs:
     <<: *build-electrs
-    command: electrs --network=testnet4 --conf=/etc/electrs.toml
+    command: electrs --network=${BITCOIN_CHAIN} --conf=/etc/electrs.toml
+    restart: unless-stopped
     depends_on:
       bitcoind:
         restart: true
         condition: service_started
     volumes:
       - ${ELECTRS_DATADIR}:/data/electrs
-      - ${BITCOIN_DATADIR}:/data/bitcoin/testnet4
+      - ${BITCOIN_DATADIR}:/data/bitcoin/${BITCOIN_CHAIN}
     configs:
       - source: electrs
         target: /etc/electrs.toml
-    ports:
-      - ${EXTERNAL_ADDR}:60801:60801
 
 configs:
   bitcoin:
-    file: ./configs/bitcoin.conf
+    file: ./configs/${BITCOIN_CONF}
   electrs:
-    file: ./configs/electrs.toml
+    file: ./configs/${ELECTRS_CONF}
