@@ -50,6 +50,10 @@ services:
     configs:
       - source: electrs
         target: /etc/electrs.toml
+    environment:
+      - RUST_BACKTRACE=1
+    expose:
+      - 50001
 
 configs:
   bitcoin:
