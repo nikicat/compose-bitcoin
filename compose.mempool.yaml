@@ -1,0 +1,107 @@
+services:
+  web:
+    #image: mempool/frontend:latest
+    build:
+      context: ./docker/mempool
+      dockerfile: ../Dockerfile.mempool
+    restart: on-failure
+    stop_signal: SIGTERM
+    ports:
+      - 8081:80
+    depends_on:
+      db:
+        restart: true
+        condition: service_healthy
+      api:
+        restart: true
+        condition: service_started
+    volumes:
+      - ./configs/mempool/nginx-mempool.conf:/etc/nginx/nginx-mempool.conf
+      - ./configs/mempool/config.js:/var/www/mempool/browser/resources/config.js
+      - ./configs/mempool/customize.js:/var/www/mempool/browser/resources/customize.js
+
+  api:
+    environment:
+      MEMPOOL_NETWORK: "signet"
+      MEMPOOL_BACKEND: "esplora"
+      CORE_RPC_HOST: "bitcoind"
+      CORE_RPC_PORT: "8332"
+      CORE_RPC_COOKIE: "true"
+      CORE_RPC_COOKIE_PATH: "/bitcoin/${BITCOIN_CHAIN}/.cookie"
+      DATABASE_ENABLED: "true"
+      DATABASE_HOST: "db"
+      DATABASE_DATABASE: "mempool"
+      DATABASE_USERNAME: "mempool"
+      DATABASE_PASSWORD: "mempool"
+      ESPLORA_REST_API_URL: "http://esplora:3000"
+      STATISTICS_ENABLED: "true"
+    image: mempool/backend:latest
+    user: "1000:1000"
+    restart: on-failure
+    command: "./start.sh"
+    volumes:
+      - /data/mempool/mutinynet/cache:/backend/cache
+      - ${BITCOIN_DATADIR}:/bitcoin/${BITCOIN_CHAIN}:ro
+    expose:
+      - 8999
+    depends_on:
+      db:
+        condition: service_healthy
+      electrs:
+        condition: service_started
+
+  db:
+    environment:
+      MYSQL_DATABASE: "mempool"
+      MYSQL_USER: "mempool"
+      MYSQL_PASSWORD: "mempool"
+      MYSQL_ROOT_PASSWORD: "admin"
+    image: mariadb:10.5.21
+    user: "1000:1000"
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+      - /data/mempool/mutinynet/mysql/data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  esplora:
+    build:
+      context: ./docker/electrs
+      args:
+        GIT_URL: ${ESPLORA_GIT_URL:-https://github.com/mempool/electrs}
+        GIT_BRANCH: ${ESPLORA_GIT_BRANCH:-mempool}
+        GIT_REV: ${ESPLORA_GIT_REV:-}
+        NJOBS: ${NJOBS:-}
+    command:
+      - electrs
+      - --network=${BITCOIN_CHAIN:-mainnet}
+      - --db-dir=/data/electrs
+      - --daemon-dir=/data/bitcoin
+      - --daemon-rpc-addr=bitcoind:8332
+      - --electrum-rpc-addr=0.0.0.0:50001
+      - --monitoring-addr=0.0.0.0:4224
+      - --magic=a5df2dcb
+      - --cors=*
+      - --lightmode
+      - -vv
+      - --jsonrpc-import
+      - --http-addr=0.0.0.0:3000
+    expose:
+      - 3000
+      - 50001
+      - 4224
+    restart: unless-stopped
+    depends_on:
+      bitcoind:
+        restart: true
+        condition: service_started
+    volumes:
+      - ${ESPLORA_DATADIR}:/data/electrs
+      - ${BITCOIN_DATADIR}:/data/bitcoin/${BITCOIN_CHAIN}
+    environment:
+      - RUST_BACKTRACE=1
