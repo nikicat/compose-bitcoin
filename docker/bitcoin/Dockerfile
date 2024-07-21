@@ -72,6 +72,5 @@ RUN apk add --no-cache \
 	miniupnpc-dev
 
 COPY  --from=builder /app/bin/bitcoin* /usr/local/bin/
-VOLUME /root/.bitcoin
 
 CMD ["bitcoind"]

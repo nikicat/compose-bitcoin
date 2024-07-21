@@ -1,5 +1,5 @@
 x-bitcoin-build: &build-bitcoin
-  user: ${DOCKER_UID_GID}
+  user: ${DOCKER_UID_GID} # should be the same as local user
   build:
     context: ./docker/bitcoin
     args:
@@ -19,26 +19,31 @@ x-electrs-build: &build-electrs
 services:
   bitcoind:
     <<: *build-bitcoin
-    command: bitcoind -datadir=/.bitcoin ${BITCOIN_ARGS}
+    command: bitcoind -datadir=/bitcoin -chain=${BITCOIN_CHAIN} -rpcbind=0.0.0.0:8332 ${BITCOIN_ARGS}
     restart: unless-stopped
     volumes:
-      - ${BITCOIN_DATADIR}:/.bitcoin/${BITCOIN_CHAIN}
+      - ${BITCOIN_DATADIR}:/bitcoin/${BITCOIN_CHAIN}
     configs:
       - source: bitcoin 
-        target: /.bitcoin/bitcoin.conf
+        target: /bitcoin/bitcoin.conf
+    expose:
+      - 8332
 
   bitcoin-cli:
     <<: *build-bitcoin
-    entrypoint: bitcoin-cli -rpcconnect=bitcoind -rpcwallet=main -datadir=/.bitcoin
+    entrypoint: bitcoin-cli -datadir=/bitcoin -rpcconnect=bitcoind -rpcport=8332 -rpcwallet=main
     volumes:
-      - ${BITCOIN_DATADIR}:/.bitcoin/${BITCOIN_CHAIN}
+      - ${BITCOIN_DATADIR}:/bitcoin/${BITCOIN_CHAIN}:ro
     configs:
       - source: bitcoin 
-        target: /.bitcoin/bitcoin.conf
+        target: /bitcoin/bitcoin.conf
+    depends_on:
+      bitcoind:
+        condition: service_started
 
   electrs:
     <<: *build-electrs
-    command: electrs --network=${BITCOIN_CHAIN} --conf=/etc/electrs.toml
+    command: electrs --network=${BITCOIN_CHAIN:-mainnet} --conf=/etc/electrs.toml
     restart: unless-stopped
     depends_on:
       bitcoind:
@@ -46,7 +51,7 @@ services:
         condition: service_started
     volumes:
       - ${ELECTRS_DATADIR}:/data/electrs
-      - ${BITCOIN_DATADIR}:/data/bitcoin/${BITCOIN_CHAIN}
+      - ${BITCOIN_DATADIR}:/data/bitcoin/${BITCOIN_CHAIN}:ro
     configs:
       - source: electrs
         target: /etc/electrs.toml
