@@ -3,9 +3,9 @@ x-bitcoin-build: &build-bitcoin
   build:
     context: ./docker/bitcoin
     args:
-      GIT_URL: ${BITCOIN_GIT_URL}
-      GIT_BRANCH: ${BITCOIN_GIT_BRANCH}
-      NJOBS: ${NJOBS}
+      GIT_URL: ${BITCOIN_GIT_URL:-https://github.com/bitcoin/bitcoin.git}
+      GIT_BRANCH: ${BITCOIN_GIT_BRANCH:-v27.1}
+      NJOBS: ${NJOBS:-4}
 
 x-electrs-build: &build-electrs
   build:
@@ -19,10 +19,10 @@ x-electrs-build: &build-electrs
 services:
   bitcoind:
     <<: *build-bitcoin
-    command: bitcoind -datadir=/bitcoin -chain=${BITCOIN_CHAIN} -rpcbind=0.0.0.0:8332 ${BITCOIN_ARGS}
+    command: bitcoind -datadir=/bitcoin -chain=${BITCOIN_CHAIN} -rpcbind=0.0.0.0:8332 ${BITCOIN_ARGS:-}
     restart: unless-stopped
     volumes:
-      - ${BITCOIN_DATADIR}:/bitcoin/${BITCOIN_CHAIN}
+      - ${BITCOIN_DATADIR}:/bitcoin
     configs:
       - source: bitcoin 
         target: /bitcoin/bitcoin.conf
@@ -33,7 +33,7 @@ services:
     <<: *build-bitcoin
     entrypoint: bitcoin-cli -datadir=/bitcoin -rpcconnect=bitcoind -rpcport=8332 -rpcwallet=main
     volumes:
-      - ${BITCOIN_DATADIR}:/bitcoin/${BITCOIN_CHAIN}:ro
+      - ${BITCOIN_DATADIR}:/bitcoin:ro
     configs:
       - source: bitcoin 
         target: /bitcoin/bitcoin.conf
@@ -43,7 +43,7 @@ services:
 
   electrs:
     <<: *build-electrs
-    command: electrs --network=${BITCOIN_CHAIN:-mainnet} --conf=/etc/electrs.toml
+    command: electrs --conf=/etc/electrs.toml
     restart: unless-stopped
     depends_on:
       bitcoind:
@@ -51,7 +51,7 @@ services:
         condition: service_started
     volumes:
       - ${ELECTRS_DATADIR}:/data/electrs
-      - ${BITCOIN_DATADIR}:/data/bitcoin/${BITCOIN_CHAIN}:ro
+      - ${BITCOIN_DATADIR}:/data/bitcoin:ro
     configs:
       - source: electrs
         target: /etc/electrs.toml
