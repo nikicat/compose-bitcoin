@@ -12,8 +12,10 @@ x-electrs-build: &build-electrs
     context: ./docker/electrs
     args:
       GIT_URL: ${ELECTRS_GIT_URL:-https://github.com/romanz/electrs}
-      GIT_BRANCH: ${ELECTRS_GIT_BRANCH:-master}
+      GIT_BRANCH: ${ELECTRS_GIT_BRANCH:-}
       GIT_REV: ${ELECTRS_GIT_REV:-}
+      GIT_TAG: ${ELECTRS_GIT_TAG:-}
+      FEATURES: ${ELECTRS_FEATURES:-}
       NJOBS: ${NJOBS:-}
 
 services:
@@ -43,22 +45,33 @@ services:
 
   electrs:
     <<: *build-electrs
-    command: electrs --conf=/etc/electrs.toml
     restart: unless-stopped
     depends_on:
       bitcoind:
         restart: true
         condition: service_started
+    command:
+      - electrs
+      - --network=${ELECTRS_CHAIN}
+      - --db-dir=/data/electrs
+      - --daemon-dir=/data/bitcoin
+      - --daemon-rpc-addr=bitcoind:8332
+      - --electrum-rpc-addr=0.0.0.0:50001
+      - --monitoring-addr=0.0.0.0:4224
+      - -vv
+      - --jsonrpc-import
+      - --http-addr=0.0.0.0:3000
+      - --electrum-public-hosts={"${ELECTRS_PUBLIC_HOSTS}":{"tcp_port":50001}}
+      - --electrum-banner=${ELECTRS_BANNER}
+    expose:
+      - 3000
+      - 50001
+      - 4224
     volumes:
       - ${ELECTRS_DATADIR}:/data/electrs
       - ${BITCOIN_DATADIR}:/data/bitcoin:ro
-    configs:
-      - source: electrs
-        target: /etc/electrs.toml
     environment:
       - RUST_BACKTRACE=1
-    expose:
-      - 50001
 
 configs:
   bitcoin:
