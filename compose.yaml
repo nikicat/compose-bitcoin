@@ -31,6 +31,7 @@ services:
         target: /bitcoin/bitcoin.conf
     expose:
       - 8332
+      - 8333
 
   bitcoin-cli:
     <<: *build-bitcoin
@@ -53,17 +54,19 @@ services:
         condition: service_started
     command:
       - electrs
+      - --conf=/config/electrs.toml
       - --network=${ELECTRS_CHAIN}
       - --db-dir=/data/electrs
       - --daemon-dir=/data/bitcoin
       - --daemon-rpc-addr=bitcoind:8332
+      - --daemon-p2p-addr=bitcoind:8333
       - --electrum-rpc-addr=0.0.0.0:50001
       - --monitoring-addr=0.0.0.0:4224
-      - -vv
-      - --jsonrpc-import
-      - --http-addr=0.0.0.0:3000
-      - --electrum-public-hosts={"${ELECTRS_PUBLIC_HOSTS}":{"tcp_port":50001}}
-      - --electrum-banner=${ELECTRS_BANNER}
+      - --server-banner=${ELECTRS_BANNER}
+      - --log-filters=INFO
+    configs:
+      - source: electrs
+        target: /config/electrs.toml
     expose:
       - 3000
       - 50001
@@ -72,7 +75,7 @@ services:
       - ${ELECTRS_DATADIR}:/data/electrs
       - ${BITCOIN_DATADIR}:/data/bitcoin:ro
     environment:
-      - RUST_BACKTRACE=1
+      - RUST_BACKTRACE=full
 
 configs:
   bitcoin:
