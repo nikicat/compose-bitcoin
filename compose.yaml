@@ -11,6 +11,7 @@ x-electrs-build: &build-electrs
   build:
     context: ./docker/electrs
     args:
+      RUST_VERSION: ${ELECTRS_RUST_VERSION:-latest}
       GIT_URL: ${ELECTRS_GIT_URL:-https://github.com/romanz/electrs}
       GIT_BRANCH: ${ELECTRS_GIT_BRANCH:-}
       GIT_REV: ${ELECTRS_GIT_REV:-}

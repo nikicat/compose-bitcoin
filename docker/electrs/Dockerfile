@@ -1,4 +1,5 @@
-FROM rust:latest AS builder
+ARG RUST_VERSION=latest
+FROM rust:${RUST_VERSION} AS builder
 
 RUN apt-get update && apt-get install -y clang && rm -rf /var/lib/apt/lists/*
 
