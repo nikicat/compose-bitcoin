@@ -1,6 +1,7 @@
 x-bitcoin-build: &build-bitcoin
   build:
     context: ./docker/bitcoin
+    dockerfile: ${BITCOIN_DOCKERFILE:-Dockerfile}
     args:
       GIT_URL: ${BITCOIN_GIT_URL:-https://github.com/bitcoin/bitcoin.git}
       GIT_BRANCH: ${BITCOIN_GIT_BRANCH:-v27.1}
