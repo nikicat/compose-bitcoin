@@ -1,5 +1,4 @@
 x-bitcoin-build: &build-bitcoin
-  user: ${DOCKER_UID_GID} # should be the same as local user
   build:
     context: ./docker/bitcoin
     args:
