@@ -12,7 +12,7 @@ x-electrs-build: &build-electrs
     context: ./docker/electrs
     args:
       RUST_VERSION: ${ELECTRS_RUST_VERSION:-latest}
-      GIT_URL: ${ELECTRS_GIT_URL:-https://github.com/romanz/electrs}
+      GIT_URL: ${ELECTRS_GIT_URL:-https://github.com/mempool/electrs}
       GIT_BRANCH: ${ELECTRS_GIT_BRANCH:-}
       GIT_REV: ${ELECTRS_GIT_REV:-}
       GIT_TAG: ${ELECTRS_GIT_TAG:-}
@@ -54,16 +54,13 @@ services:
         condition: service_started
     command:
       - electrs
-      - --conf=/config/electrs.toml
       - --network=${ELECTRS_CHAIN}
       - --db-dir=/data/electrs
       - --daemon-dir=/data/bitcoin
       - --daemon-rpc-addr=bitcoind:8332
-      - --daemon-p2p-addr=bitcoind:8333
       - --electrum-rpc-addr=0.0.0.0:50001
       - --monitoring-addr=0.0.0.0:4224
-      - --server-banner=${ELECTRS_BANNER}
-      - --log-filters=INFO
+      - --electrum-banner=${ELECTRS_BANNER}
     configs:
       - source: electrs
         target: /config/electrs.toml
