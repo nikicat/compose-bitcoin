@@ -35,7 +35,7 @@ services:
 
   bitcoin-cli:
     <<: *build-bitcoin
-    entrypoint: bitcoin-cli -datadir=/bitcoin -rpcconnect=bitcoind -rpcport=8332 -rpcwallet=main
+    entrypoint: bitcoin-cli -datadir=/bitcoin -rpcconnect=bitcoind -rpcport=8332 #-rpcwallet=main
     volumes:
       - ${BITCOIN_DATADIR}:/bitcoin:ro
     configs:

@@ -12,7 +12,6 @@ RUN apk add --no-cache \
         libressl \
         libtool \
         linux-headers \
-        capnproto-dev \
         zeromq-dev
 
 ARG GIT_URL
