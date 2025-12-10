@@ -22,9 +22,14 @@ WORKDIR /src
 RUN git clone -b "${GIT_BRANCH:-main}" --depth=1 "${GIT_URL:-https://github.com/bitcoin/bitcoin.git}"
 
 WORKDIR /src/bitcoin
-RUN cmake -B build -LH
+COPY patches /patches
+RUN find /patches -type f -print0 | xargs -t -0 -n1 patch -p1
+RUN --mount=type=cache,target=/src/bitcoin/build cmake -B build -LH
 ARG NJOBS
-RUN cmake -B build -DENABLE_WALLET=OFF && cmake --build build -j ${NJOBS}
+RUN --mount=type=cache,target=/src/bitcoin/build \
+  cmake -B build -DENABLE_WALLET=OFF && \
+  cmake --build build -j ${NJOBS} && \
+  cp -a /src/bitcoin/build/bin /out
 
 FROM alpine
 
@@ -35,6 +40,6 @@ RUN apk add --no-cache \
         libzmq \
         sqlite-libs
 
-COPY  --from=builder /src/bitcoin/build/bin/bitcoin* /usr/local/bin/
+COPY --from=builder /out/bitcoin* /usr/local/bin/
 
 CMD ["bitcoind"]
