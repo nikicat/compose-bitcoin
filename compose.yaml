@@ -62,6 +62,7 @@ services:
       - --electrum-rpc-addr=0.0.0.0:50001
       - --monitoring-addr=0.0.0.0:4224
       - --electrum-banner=${ELECTRS_BANNER}
+      - --electrum-txs-limit=50000
     configs:
       - source: electrs
         target: /config/electrs.toml
